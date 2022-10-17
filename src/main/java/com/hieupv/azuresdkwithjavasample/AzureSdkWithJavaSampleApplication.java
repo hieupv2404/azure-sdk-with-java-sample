@@ -6,7 +6,6 @@ import com.azure.core.http.rest.PagedIterable;
 import com.azure.core.management.AzureEnvironment;
 import com.azure.core.management.Region;
 import com.azure.core.management.profile.AzureProfile;
-import com.azure.identity.AzureAuthorityHosts;
 import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.resources.models.Deployment;
@@ -16,8 +15,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.hieupv.azuresdkwithjavasample.utils.Utils;
-import lombok.extern.log4j.Log4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Configuration;
@@ -27,7 +24,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 
 @SpringBootApplication
 @Configuration
@@ -164,7 +160,7 @@ public class AzureSdkWithJavaSampleApplication {
 
     // Auto create Resources when time at 08:00
     @Scheduled(cron = "0 0 8 * * *")
-    private static void runCreateResources(){
+    private static void runCreateResources() {
         try {
             runSample(azureResourceManager);
         } catch (Exception e) {
@@ -175,7 +171,7 @@ public class AzureSdkWithJavaSampleApplication {
 
     // Auto delete Resource Group when time at 17:00
     @Scheduled(cron = "0 0 17 * * *")
-    private static void deleteResourceGroup(){
+    private static void deleteResourceGroup() {
         try {
             System.out.println("Deleting Resource Group: " + rgName);
             azureResourceManager.resourceGroups().beginDeleteByName(rgName);
