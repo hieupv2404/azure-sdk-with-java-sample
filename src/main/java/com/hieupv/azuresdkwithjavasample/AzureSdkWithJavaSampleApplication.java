@@ -128,25 +128,9 @@ public class AzureSdkWithJavaSampleApplication {
     }
 
     private static String getTemplate() throws IllegalAccessException, JsonProcessingException, IOException {
-//        try (InputStream embeddedTemplate = AzureSdkWithJavaSampleApplication.class.getResourceAsStream("/templateValue.json")) {
-
-
-//        try (InputStream template = AzureSdkWithJavaSampleApplication.class.getResourceAsStream("D:/Document/dmoa/cpl/cmc-deploy/cmc-krc-deploy-vm/template.json")){
-//
-//            final ObjectMapper mapper = new ObjectMapper();
-//            final JsonNode tmp = mapper.readTree(template);
-//
-////            AzureSdkWithJavaSampleApplication.validateAndAddFieldValue("string", "F1", "skuName", null, tmp);
-//
-//            return tmp.toString();
-//        }
-
         try {
             final ObjectMapper mapper = new ObjectMapper();
             final JsonNode tmp = mapper.readTree(new File("D:/Document/dmoa/cpl/cmc-deploy/cmc-krc-deploy-vm/template.json"));
-
-//            AzureSdkWithJavaSampleApplication.validateAndAddFieldValue("string", "F1", "skuName", null, tmp);
-
             return tmp.toString();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -178,7 +162,8 @@ public class AzureSdkWithJavaSampleApplication {
         ObjectNode.class.cast(tmp.get("parameters")).replace(fieldName, parameter);
     }
 
-//    @Scheduled(cron = "* 6 * * * *")
+    // Auto create Resources when time at 08:00
+    @Scheduled(cron = "0 0 8 * * *")
     private static void runCreateResources(){
         try {
             runSample(azureResourceManager);
@@ -188,7 +173,8 @@ public class AzureSdkWithJavaSampleApplication {
         }
     }
 
-//    @Scheduled(cron = "* 3 * * * *")
+    // Auto delete Resource Group when time at 17:00
+    @Scheduled(cron = "0 0 17 * * *")
     private static void deleteResourceGroup(){
         try {
             System.out.println("Deleting Resource Group: " + rgName);
