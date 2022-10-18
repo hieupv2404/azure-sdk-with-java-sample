@@ -30,6 +30,7 @@ public class AzureSdkWithJavaSampleApplication {
     static int i;
     public static void main(String[] args) {
         SpringApplication.run(AzureSdkWithJavaSampleApplication.class, args);
+        RetrieveConfig.retrieveConfig();
         File[] directories = RetrieveConfig.getAllProject(RetrieveConfig.ROOT_PATH_DEPLOY);
 
         for (i = 0; i < directories.length; i++) {
@@ -38,23 +39,28 @@ public class AzureSdkWithJavaSampleApplication {
                     .parentPath(directories[i].getPath())
                     .projectName(projectName)
                     .azureResourceManager(azureResourceManager)
+                    .rgName(RetrieveConfig.config.get(projectName+"-rgName"))
+                    .deploymentName(RetrieveConfig.config.get(projectName+"-deploymentName"))
                     .build();
             automationDeployResourcesList.add(automation);
+            automation.runCreateResources();
             Scheduler create = new Scheduler();
-            create.schedule(RetrieveConfig.config.get(projectName+"-schedulerToCreate"), () -> automationDeployResourcesList.get(i).runCreateResources());
+            int currentIndex = i;
+            create.schedule(RetrieveConfig.config.get(projectName+"-schedulerToCreate"), () -> automationDeployResourcesList.get(currentIndex).runCreateResources());
             // Starts the scheduler to create resources.
             create.start();
 
             Scheduler delete = new Scheduler();
-            delete.schedule(RetrieveConfig.config.get(projectName+"-schedulerToDelete"), () -> automationDeployResourcesList.get(i).deleteResourceGroup());
+            delete.schedule(RetrieveConfig.config.get(projectName+"-schedulerToDelete"), () -> automationDeployResourcesList.get(currentIndex).deleteResourceGroup());
             // Starts the scheduler to delete resources.
             delete.start();
             schedulerList.add(create);
             schedulerList.add(delete);
         }
+
     }
 
-    static AzureProfile profile = new AzureProfile(AzureEnvironment.AZURE);
+    static AzureProfile profile = new AzureProfile("16f290ef-2fe2-43b8-b8b5-2b74d9257f50", "0e57272d-f2d7-4c7b-ad01-4632eee6454f",AzureEnvironment.AZURE);
     static TokenCredential credential = new DefaultAzureCredentialBuilder()
             .authorityHost(profile.getEnvironment().getActiveDirectoryEndpoint())
             .build();

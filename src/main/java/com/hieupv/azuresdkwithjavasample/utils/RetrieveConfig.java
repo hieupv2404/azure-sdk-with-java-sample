@@ -17,11 +17,11 @@ import java.util.stream.Stream;
 
 @Log4j2
 public class RetrieveConfig {
-    public static Map<String,String> config = new HashMap<String,String>();
+    public static Map<String,String> config = new HashMap<>();
     public static final String ROOT_PATH_DEPLOY = System.getenv("root-path-deploy");
 
     public static File[] getAllProject(String rootPath){
-        return new File(ROOT_PATH_DEPLOY).listFiles(File::isDirectory);
+        return new File(rootPath).listFiles(File::isDirectory);
     }
     public static void retrieveConfig() {
         File[] directories = getAllProject(ROOT_PATH_DEPLOY);
@@ -33,11 +33,11 @@ public class RetrieveConfig {
 
                 int readSize = reader.read();
                 if (readSize == -1) {
-                    log.info("File " + directories[i].getPath() + "/config.json is OK!");
+                    log.error("File " + directories[i].getPath() + "/config.json is not found!");
                     continue;
                 }
                 else {
-                    log.error("File " + directories[i].getPath() + "/config.json is not found!");
+                    log.info("File " + directories[i].getPath() + "/config.json is OK!");
                 }
 
                 Object obj = parser.parse(new FileReader(directories[i].getPath() + "/config.json"));

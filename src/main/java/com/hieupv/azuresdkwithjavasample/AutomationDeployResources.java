@@ -5,6 +5,7 @@ import com.azure.core.http.policy.HttpLogDetailLevel;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.core.management.AzureEnvironment;
 import com.azure.core.management.Region;
+import com.azure.core.management.exception.ManagementException;
 import com.azure.core.management.profile.AzureProfile;
 import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.resourcemanager.AzureResourceManager;
@@ -25,6 +26,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
+import javax.websocket.DeploymentException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -40,10 +42,8 @@ public class AutomationDeployResources {
     //=================================================================
     // Authenticate
 
-
-
-    private final String rgName = RetrieveConfig.config.get(projectName+"-rgName");
-    private final String deploymentName = RetrieveConfig.config.get(projectName+"-deploymentName");
+    private String rgName;
+    private String deploymentName;
 
     private String parentPath;
 
@@ -56,11 +56,11 @@ public class AutomationDeployResources {
 
     private boolean runSample(AzureResourceManager azureResourceManager) throws IOException, IllegalAccessException {
 
-        Deployment deployment1 = azureResourceManager.deployments()
-                .getByResourceGroup(rgName, deploymentName);
-        PagedIterable<DeploymentOperation> operations1 = deployment1.deploymentOperations()
-                .list();
-        log.info(operations1.toString());
+//        Deployment deployment1 = azureResourceManager.deployments()
+//                .getByResourceGroup(rgName, deploymentName);
+//        PagedIterable<DeploymentOperation> operations1 = deployment1.deploymentOperations()
+//                .list();
+//        log.info(operations1.toString());
         try {
             String templateJson = getTemplate(parentPath);
 
@@ -70,9 +70,14 @@ public class AutomationDeployResources {
             //=============================================================
             // Create resource group.
             log.info("Creating a resource group with name: " + rgName);
+            boolean isResourceGroupExist = false;
+            for (ResourceGroup rGroup : azureResourceManager.resourceGroups().list()) {
+                if(rGroup.name().equals(rgName)){
+                    isResourceGroupExist = true;
+                }
 
-            List<ResourceGroup> resourceGroupList = (List<ResourceGroup>) azureResourceManager.resourceGroups().list();
-            if(resourceGroupList.size() <=0 || !resourceGroupList.contains(rgName)) {
+            }
+            if(!isResourceGroupExist) {
 
                 azureResourceManager.resourceGroups().define(rgName)
                         .withRegion(Region.create(RetrieveConfig.config.get(projectName + "-rgRegionName"), RetrieveConfig.config.get(projectName + "-rgRegionLabel")))
@@ -93,12 +98,18 @@ public class AutomationDeployResources {
             //
             log.info("Starting a deployment for an Azure App Service: " + deploymentName);
 
-            azureResourceManager.deployments().define(deploymentName)
-                    .withExistingResourceGroup(rgName)
-                    .withTemplate(templateJson)
-                    .withParameters(parameterJson)
-                    .withMode(DeploymentMode.INCREMENTAL)
-                    .create();
+            try {
+                azureResourceManager.deployments().define(deploymentName)
+                        .withExistingResourceGroup(rgName)
+                        .withTemplate(templateJson)
+                        .withParameters(parameterJson)
+                        .withMode(DeploymentMode.INCREMENTAL)
+                        .create();
+            } catch (ManagementException e){
+                log.error(e.getMessage(), e);
+                log.error(e.getCause());
+                log.error(e.getStackTrace());
+            }
 
             log.info("Started a deployment for an Azure VM: " + deploymentName);
             return true;
