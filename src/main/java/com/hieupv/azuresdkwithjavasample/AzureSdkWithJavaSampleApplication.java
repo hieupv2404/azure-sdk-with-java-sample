@@ -27,35 +27,41 @@ import java.util.List;
 public class AzureSdkWithJavaSampleApplication {
     static List<AutomationDeployResources> automationDeployResourcesList = new ArrayList<>();
     static List<Scheduler> schedulerList = new ArrayList<>();
-    static int i;
     public static void main(String[] args) {
         SpringApplication.run(AzureSdkWithJavaSampleApplication.class, args);
         RetrieveConfig.retrieveConfig();
         File[] directories = RetrieveConfig.getAllProject(RetrieveConfig.ROOT_PATH_DEPLOY);
 
-        for (i = 0; i < directories.length; i++) {
+        for (int i = 0; i < directories.length; i++) {
             String projectName = directories[i].getName();
-            AutomationDeployResources automation = AutomationDeployResources.builder()
-                    .parentPath(directories[i].getPath())
-                    .projectName(projectName)
-                    .azureResourceManager(azureResourceManager)
-                    .rgName(RetrieveConfig.config.get(projectName+"-rgName"))
-                    .deploymentName(RetrieveConfig.config.get(projectName+"-deploymentName"))
-                    .build();
-            automationDeployResourcesList.add(automation);
-            automation.runCreateResources();
+            File[] subDirectories = RetrieveConfig.getAllProject(directories[i].getPath());
+            log.info("Project Name: " + projectName);
+            log.info("Sub Directory: " + subDirectories.toString());
             Scheduler create = new Scheduler();
-            int currentIndex = i;
-            create.schedule(RetrieveConfig.config.get(projectName+"-schedulerToCreate"), () -> automationDeployResourcesList.get(currentIndex).runCreateResources());
-            // Starts the scheduler to create resources.
+            create.schedule(RetrieveConfig.config.get(projectName + "-schedulerToCreate"), () -> {
+                log.info("====>>> 1st Run job to deploy for " + projectName);
+                for (int j = 0; j < subDirectories.length; j++) {
+                    AutomationDeployResources automation = AutomationDeployResources.builder()
+                            .parentPath(subDirectories[j].getPath())
+                            .projectName(projectName)
+                            .azureResourceManager(azureResourceManager)
+                            .rgName(RetrieveConfig.config.get(projectName + "-rgName"))
+                            .deploymentName(RetrieveConfig.config.get(projectName + "-deploymentName"))
+                            .build();
+                    automationDeployResourcesList.add(automation);
+                    automation.runCreateResources();
+                }
+            });
             create.start();
-
-            Scheduler delete = new Scheduler();
-            delete.schedule(RetrieveConfig.config.get(projectName+"-schedulerToDelete"), () -> automationDeployResourcesList.get(currentIndex).deleteResourceGroup());
-            // Starts the scheduler to delete resources.
-            delete.start();
             schedulerList.add(create);
-            schedulerList.add(delete);
+
+//                Scheduler delete = new Scheduler();
+//                delete.schedule(RetrieveConfig.config.get(projectName + "-schedulerToDelete"), () -> automationDeployResourcesList.get(currentIndex).deleteResourceGroup());
+//                // Starts the scheduler to delete resources.
+//                delete.start();
+//                schedulerList.add(delete);
+
+
         }
 
     }

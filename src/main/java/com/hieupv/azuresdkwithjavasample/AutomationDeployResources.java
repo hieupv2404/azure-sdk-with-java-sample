@@ -156,7 +156,7 @@ public class AutomationDeployResources {
             final ObjectMapper mapper = new ObjectMapper();
             log.info("===> Parent Path: " + parentPath);
             final JsonNode param = mapper.readTree(new File(parentPath+"/parameters.json"));
-            return param.toString();
+            return param.get("parameters").toString();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
             return "File not found";
