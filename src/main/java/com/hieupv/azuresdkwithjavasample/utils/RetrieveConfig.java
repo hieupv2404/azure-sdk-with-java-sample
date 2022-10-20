@@ -6,18 +6,49 @@ import org.json.simple.parser.JSONParser;
 
 import java.io.File;
 import java.io.FileReader;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Log4j2
 public class RetrieveConfig {
     public static Map<String, String> config = new HashMap<>();
+    public static List<String> priorityList = new ArrayList<>();
     public static final String ROOT_PATH_DEPLOY = System.getenv("root-path-deploy");
 
     public static File[] getAllProject(String rootPath) {
         return new File(rootPath).listFiles(File::isDirectory);
     }
 
+    public static void setPriority(){
+        try {
+            FileReader reader = new FileReader(ROOT_PATH_DEPLOY + "/priority.json");
+            JSONParser parser = new JSONParser();
+
+            int readSize = reader.read();
+            if (readSize == -1) {
+                log.error("File " + ROOT_PATH_DEPLOY + "/priority.json is not found!");
+            } else {
+                log.info("File " + ROOT_PATH_DEPLOY + "/priority.json is OK!");
+            }
+
+            Object obj = parser.parse(new FileReader(ROOT_PATH_DEPLOY + "/priority.json"));
+            JSONObject jsonObject = (JSONObject) obj;
+
+            String[] priorityArray = new String[jsonObject.size()*2+1];
+            jsonObject.keySet().forEach(keyStr ->
+            {
+                Object value = jsonObject.get(keyStr);
+                log.info("key: "+ keyStr + " - value: " + value);
+                priorityArray[Math.toIntExact((Long) value)] = (String) keyStr;
+            });
+
+            priorityList.addAll(Arrays.asList(priorityArray));
+            priorityList.removeAll(Arrays.asList("", null));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
     public static void retrieveConfig() {
         File[] directories = getAllProject(ROOT_PATH_DEPLOY);
         for (int i = 0; i < directories.length; i++) {

@@ -83,6 +83,10 @@
             <artifactId>commons-net</artifactId>
             <version>3.6</version>
         </dependency>
+        <dependency>
+            <groupId>com.jayway.jsonpath</groupId>
+            <artifactId>json-path</artifactId>
+        </dependency>
 
     </dependencies>
 

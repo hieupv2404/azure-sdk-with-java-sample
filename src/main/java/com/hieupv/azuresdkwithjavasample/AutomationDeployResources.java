@@ -13,13 +13,21 @@ import com.azure.resourcemanager.resources.models.Deployment;
 import com.azure.resourcemanager.resources.models.DeploymentMode;
 import com.azure.resourcemanager.resources.models.DeploymentOperation;
 import com.azure.resourcemanager.resources.models.ResourceGroup;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.TreeNode;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.hieupv.azuresdkwithjavasample.utils.RetrieveConfig;
+import com.jayway.jsonpath.JsonPath;
 import lombok.Builder;
 import lombok.extern.log4j.Log4j2;
+import net.minidev.json.JSONArray;
+import net.minidev.json.JSONObject;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Configuration;
@@ -30,7 +38,9 @@ import javax.websocket.DeploymentException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 @Log4j2
 @Builder
@@ -156,7 +166,15 @@ public class AutomationDeployResources {
             final ObjectMapper mapper = new ObjectMapper();
             log.info("===> Parent Path: " + parentPath);
             final JsonNode param = mapper.readTree(new File(parentPath+"/parameters.json"));
-            return param.get("parameters").toString();
+            JsonNode paramNode = param.get("parameters");
+
+            Map<String, Object> mapKeyOfParameters = mapper.readValue(paramNode.toString(), new TypeReference<Map>() {});
+            mapKeyOfParameters.forEach((k, v) -> {
+                if(paramNode.at("/"+k+"/value").toString().equals("null")){
+                    ((ObjectNode)paramNode).remove(k);
+                }
+            });
+            return paramNode.toString();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
             return "File not found";

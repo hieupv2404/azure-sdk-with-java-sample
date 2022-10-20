@@ -1,5 +1,7 @@
 package com.hieupv.azuresdkwithjavasample.utils;
 
+import com.hieupv.azuresdkwithjavasample.AzureSdkWithJavaSampleApplication;
+
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,5 +29,7 @@ public class test {
 //            System.out.println(directories[i].getName());
 //        }
         RetrieveConfig.retrieveConfig();
+        RetrieveConfig.setPriority();
+        AzureSdkWithJavaSampleApplication.subDirectoriesAfterSort(RetrieveConfig.getAllProject("D:/Document/dmoa/single/cmc"));
     }
 }
