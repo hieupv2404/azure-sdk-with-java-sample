@@ -28,6 +28,7 @@ import lombok.Builder;
 import lombok.extern.log4j.Log4j2;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
+import org.apache.commons.io.FileUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Configuration;
@@ -106,7 +107,7 @@ public class AutomationDeployResources {
             log.info("====> Template: " + templateJson);
             log.info("====> Parameter: " + parameterJson);
             //
-            log.info("Starting a deployment for an Azure App Service: " + deploymentName);
+            log.info("Starting a deployment for an Azure Resource: " + deploymentName);
 
             try {
                 azureResourceManager.deployments().define(deploymentName)
@@ -116,12 +117,11 @@ public class AutomationDeployResources {
                         .withMode(DeploymentMode.INCREMENTAL)
                         .create();
             } catch (ManagementException e){
-                log.error(e.getMessage(), e);
-                log.error(e.getCause());
-                log.error(e.getStackTrace());
+                log.error("====>>> Exception create resource: " + e.getMessage(), e);
+                log.error("====>>> Failed to create resource: " + parentPath);
             }
 
-            log.info("Started a deployment for an Azure VM: " + deploymentName);
+            log.info("Done a deployment for an Azure Resource: " + deploymentName);
             return true;
         } finally {
             try {
@@ -152,8 +152,67 @@ public class AutomationDeployResources {
     private String getTemplate(String parentPath) throws IllegalAccessException, JsonProcessingException, IOException {
         try {
             final ObjectMapper mapper = new ObjectMapper();
-            log.info("===> Parent Path: " + parentPath);
-            final JsonNode tmp = mapper.readTree(new File(parentPath+"/template.json"));
+            JsonNode tmp = null;
+            File directory = new File(parentPath);
+
+            if (directory.getName().matches("nsg(.*)")) {
+                String parentPathDir = directory.getParent();
+                File sourceDirectory = new File(directory.getPath());
+                File destinationDirectory = new File(parentPathDir + "/sgr-" + directory.getName());
+                try {
+                    // Copy directory
+                    FileUtils.copyDirectory(sourceDirectory, destinationDirectory);
+
+                    // Modify file contents
+                    // Remove from original file contents
+                    final ObjectMapper mapperDir = new ObjectMapper();
+                    final JsonNode param = mapperDir.readTree(new File(sourceDirectory.getPath() + "/template.json"));
+                    JsonNode paramNode = param.get("resources");
+
+                    for (JsonNode paramNodeIndex : paramNode) {
+                        Map<String, Object> mapKeyOfParameters = mapperDir.readValue(paramNodeIndex.toString(), new TypeReference<Map>() {
+                        });
+                        mapKeyOfParameters.forEach((k, v) -> {
+                            if (k.equals("type") && paramNodeIndex.at("/type").toString().equals("\"Microsoft.Network/networkSecurityGroups/securityRules\"")) {
+//                                        ((ObjectNode) paramNode).remove(k);
+                                ((ObjectNode) paramNodeIndex).removeAll();
+
+                            }
+                            if (k.equals("type") && paramNodeIndex.at("/type").toString().equals("\"Microsoft.Network/networkSecurityGroups\"")) {
+                                ((ObjectNode) paramNodeIndex).remove("dependsOn");
+
+                                ((ObjectNode) paramNodeIndex).remove("properties");
+                            }
+                        });
+                    }
+
+                    // Remove from clone file contents
+                    final ObjectMapper mapperClone = new ObjectMapper();
+                    final JsonNode paramClone = mapperClone.readTree(new File(destinationDirectory.getPath() + "/template.json"));
+                    JsonNode paramNodeClone = paramClone.get("resources");
+
+                    for (JsonNode paramNodeIndex : paramNodeClone) {
+                        Map<String, Object> mapKeyOfParameters = mapperClone.readValue(paramNodeIndex.toString(), new TypeReference<Map>() {
+                        });
+                        mapKeyOfParameters.forEach((k, v) -> {
+                            if (k.equals("type") && paramNodeIndex.at("/type").toString().equals("\"Microsoft.Network/networkSecurityGroups\"")) {
+//                                        ((ObjectNode) paramNode).remove(k);
+                                ((ObjectNode) paramNodeIndex).removeAll();
+
+                            }
+                            if (k.equals("type") && paramNodeIndex.at("/type").toString().equals("\"Microsoft.Network/networkSecurityGroups/securityRules\"")) {
+                                ((ObjectNode) paramNodeIndex).remove("dependsOn");
+                            }
+                        });
+                    }
+                    return param.toString();
+                } catch (IOException e) {
+                    log.error("Error when modify directory " + sourceDirectory + " and " + destinationDirectory);
+                    throw new RuntimeException(e);
+                }
+            } else {
+                tmp = mapper.readTree(new File(parentPath + "/template.json"));
+            }
             return tmp.toString();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -164,7 +223,6 @@ public class AutomationDeployResources {
     private String getParameter(String parentPath) throws IllegalAccessException, JsonProcessingException, IOException {
         try {
             final ObjectMapper mapper = new ObjectMapper();
-            log.info("===> Parent Path: " + parentPath);
             final JsonNode param = mapper.readTree(new File(parentPath+"/parameters.json"));
             JsonNode paramNode = param.get("parameters");
 
