@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.hieupv.azuresdkwithjavasample.utils.RetrieveConfig;
@@ -29,6 +30,8 @@ import lombok.extern.log4j.Log4j2;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import org.apache.commons.io.FileUtils;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Configuration;
@@ -39,6 +42,7 @@ import javax.websocket.DeploymentException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -86,7 +90,6 @@ public class AutomationDeployResources {
                 if(rGroup.name().equals(rgName)){
                     isResourceGroupExist = true;
                 }
-
             }
             if(!isResourceGroupExist) {
 
@@ -186,6 +189,9 @@ public class AutomationDeployResources {
                         });
                     }
 
+                    String first = param.toString().replaceAll(",\\{\\}","");
+                    String second = first.replaceAll("\\[\\{\\},","[");
+
                     // Remove from clone file contents
                     final ObjectMapper mapperClone = new ObjectMapper();
                     final JsonNode paramClone = mapperClone.readTree(new File(destinationDirectory.getPath() + "/template.json"));
@@ -196,7 +202,6 @@ public class AutomationDeployResources {
                         });
                         mapKeyOfParameters.forEach((k, v) -> {
                             if (k.equals("type") && paramNodeIndex.at("/type").toString().equals("\"Microsoft.Network/networkSecurityGroups\"")) {
-//                                        ((ObjectNode) paramNode).remove(k);
                                 ((ObjectNode) paramNodeIndex).removeAll();
 
                             }
@@ -204,11 +209,106 @@ public class AutomationDeployResources {
                                 ((ObjectNode) paramNodeIndex).remove("dependsOn");
                             }
                         });
+
                     }
-                    return param.toString();
+                    String firstClone = paramClone.toString().replaceAll(",\\{\\}","");
+                    String secondClone = firstClone.replaceAll("\\[\\{\\},","[");
+                    FileUtils.writeStringToFile(new File(destinationDirectory.getPath() + "/template.json"), secondClone, Charset.forName("UTF-8"));
+
+                    return second;
                 } catch (IOException e) {
                     log.error("Error when modify directory " + sourceDirectory + " and " + destinationDirectory);
                     throw new RuntimeException(e);
+                }
+            } else if (directory.getName().matches("vnet(.*)")) {
+                String parentPathDir = directory.getParent();
+                File sourceDirectory = new File(directory.getPath());
+                File destinationDirectory = new File(parentPathDir + "/snet-" + directory.getName());
+                try {
+                    // Copy directory
+                    FileUtils.copyDirectory(sourceDirectory, destinationDirectory);
+
+                    // Modify file contents
+                    // Remove from original file contents
+                    final ObjectMapper mapperDir = new ObjectMapper();
+                    final JsonNode param = mapperDir.readTree(new File(sourceDirectory.getPath() + "/template.json"));
+                    JsonNode paramNode = param.get("resources");
+
+                    for (JsonNode paramNodeIndex : paramNode) {
+                        Map<String, Object> mapKeyOfParameters = mapperDir.readValue(paramNodeIndex.toString(), new TypeReference<Map>() {
+                        });
+                        mapKeyOfParameters.forEach((k, v) -> {
+                            if (k.equals("type") && paramNodeIndex.at("/type").toString().equals("\"Microsoft.Network/virtualNetworks/subnets\"")) {
+                                ((ObjectNode) paramNodeIndex).removeAll();
+                            }
+                            if (k.equals("type") && paramNodeIndex.at("/type").toString().equals("\"Microsoft.Network/virtualNetworks\"")) {
+                                ((ObjectNode) paramNodeIndex).remove("dependsOn");
+
+                                ((ObjectNode) paramNodeIndex).remove("properties/subnets");
+                            }
+                        });
+                    }
+
+                    String first = param.toString().replaceAll(",\\{\\}", "");
+                    String second = first.replaceAll("\\[\\{\\},", "[");
+
+                    // Remove from clone file contents
+                    final ObjectMapper mapperClone = new ObjectMapper();
+                    final JsonNode paramClone = mapperClone.readTree(new File(destinationDirectory.getPath() + "/template.json"));
+                    JsonNode paramNodeClone = paramClone.get("resources");
+
+                    for (JsonNode paramNodeIndex : paramNodeClone) {
+                        Map<String, Object> mapKeyOfParameters = mapperClone.readValue(paramNodeIndex.toString(), new TypeReference<Map>() {
+                        });
+                        mapKeyOfParameters.forEach((k, v) -> {
+                            if (k.equals("type") && paramNodeIndex.at("/type").toString().equals("\"Microsoft.Network/virtualNetworks\"")) {
+//                                        ((ObjectNode) paramNode).remove(k);
+                                ((ObjectNode) paramNodeIndex).removeAll();
+
+                            }
+                            if (k.equals("type") && paramNodeIndex.at("/type").toString().equals("\"Microsoft.Network/virtualNetworks/subnets\"")) {
+                                ((ObjectNode) paramNodeIndex).remove("dependsOn");
+                            }
+                        });
+
+                    }
+                    String firstClone = paramClone.toString().replaceAll(",\\{\\}", "");
+                    String secondClone = firstClone.replaceAll("\\[\\{\\},", "[");
+                    FileUtils.writeStringToFile(new File(destinationDirectory.getPath() + "/template.json"), secondClone, Charset.forName("UTF-8"));
+
+                    return second;
+                } catch (IOException e) {
+                    log.error("Error when modify directory " + sourceDirectory + " and " + destinationDirectory);
+                    throw new RuntimeException(e);
+                }
+            } else if(directory.getName().matches("diskos(.*)")) {
+                try {
+                    final ObjectMapper mapperDiskOS = new ObjectMapper();
+                    final JsonNode resources = mapperDiskOS.readTree(new File(parentPath + "/template.json"));
+
+                    if (resources.at("/resources").get(0).get("location").toString().equals("\"koreacentral\"") && !resources.at("/resources").get(0).at("/properties").get("hyperVGeneration").isNull()) {
+                        ((ObjectNode) resources.at("/resources").get(0).at("/properties")).remove("supportsHibernation");
+                    }
+                    return resources.toString();
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                    return "File not found";
+                }
+            } else if(directory.getName().matches("vm(.*)")){
+                try {
+                    final ObjectMapper mapperDiskOS = new ObjectMapper();
+                    final JsonNode resources = mapperDiskOS.readTree(new File(parentPath + "/template.json"));
+
+                    if (!resources.at("/resources").get(0).at("/properties/storageProfile").get("osDisk").isNull()) {
+                        ((ObjectNode) resources.at("/resources").get(0).at("/properties/storageProfile")).remove("osDisk");
+                    }
+                    if (resources.at("/resources").get(0).get("location").toString().equals("\"koreacentral\"") && !resources.at("/resources").get(0).at("/properties/osProfile").get("requireGuestProvisionSignal").isNull()){
+                        ((ObjectNode) resources.at("/resources").get(0).at("/properties/osProfile")).remove("requireGuestProvisionSignal");
+                    }
+                    return resources.toString();
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                    return "File not found";
                 }
             } else {
                 tmp = mapper.readTree(new File(parentPath + "/template.json"));

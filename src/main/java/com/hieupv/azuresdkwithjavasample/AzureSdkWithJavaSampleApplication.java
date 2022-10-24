@@ -63,6 +63,38 @@ public class AzureSdkWithJavaSampleApplication {
                 automationDeployResourcesList.add(automation);
                 automation.runCreateResources();
                 log.info("====>>> End deploy resource path " + directory);
+
+                File autoGenFile = new File(directory);
+                String parentPath = null;
+                if(autoGenFile.getName().matches("nsg(.*)")){
+                    parentPath = autoGenFile.getParent();
+                    String directoryGenned = parentPath+"/sgr-"+ autoGenFile.getName();
+                    log.info("====================================");
+                    log.info("====>>> Start deploy resource path " + directoryGenned);
+                    AutomationDeployResources automationWithGenFolder = AutomationDeployResources.builder()
+                            .parentPath(directoryGenned)
+                            .projectName(projectName)
+                            .azureResourceManager(azureResourceManager)
+                            .rgName(RetrieveConfig.config.get(projectName + "-rgName"))
+                            .deploymentName(RetrieveConfig.config.get(projectName + "-deploymentName"))
+                            .build();
+                    automationDeployResourcesList.add(automation);
+                    automationWithGenFolder.runCreateResources();
+                } else if(autoGenFile.getName().matches("vnet(.*)")){
+                    parentPath = autoGenFile.getParent();
+                    String directoryGenned = parentPath+"/snet-"+ autoGenFile.getName();
+                    log.info("====================================");
+                    log.info("====>>> Start deploy resource path " + directoryGenned);
+                    AutomationDeployResources automationWithGenFolder = AutomationDeployResources.builder()
+                            .parentPath(directoryGenned)
+                            .projectName(projectName)
+                            .azureResourceManager(azureResourceManager)
+                            .rgName(RetrieveConfig.config.get(projectName + "-rgName"))
+                            .deploymentName(RetrieveConfig.config.get(projectName + "-deploymentName"))
+                            .build();
+                    automationDeployResourcesList.add(automation);
+                    automationWithGenFolder.runCreateResources();
+                }
             });
 
             Scheduler create = new Scheduler();
@@ -81,6 +113,38 @@ public class AzureSdkWithJavaSampleApplication {
                     automationDeployResourcesList.add(automation);
                     automation.runCreateResources();
                     log.info("=====>>> End deploy resource path " + directory);
+
+                    File autoGenFile = new File(directory);
+                    String parentPath = null;
+                    if(autoGenFile.getName().matches("nsg(.*)")){
+                        parentPath = autoGenFile.getParent();
+                        String directoryGenned = parentPath+"/sgr-"+ autoGenFile.getName();
+                        log.info("====================================");
+                        log.info("====>>> Start deploy resource path " + directoryGenned);
+                        AutomationDeployResources automationWithGenFolder = AutomationDeployResources.builder()
+                                .parentPath(directoryGenned)
+                                .projectName(projectName)
+                                .azureResourceManager(azureResourceManager)
+                                .rgName(RetrieveConfig.config.get(projectName + "-rgName"))
+                                .deploymentName(RetrieveConfig.config.get(projectName + "-deploymentName"))
+                                .build();
+                        automationDeployResourcesList.add(automation);
+                        automationWithGenFolder.runCreateResources();
+                    } else if(autoGenFile.getName().matches("vnet(.*)")){
+                        parentPath = autoGenFile.getParent();
+                        String directoryGenned = parentPath+"/snet-"+ autoGenFile.getName();
+                        log.info("====================================");
+                        log.info("====>>> Start deploy resource path " + directoryGenned);
+                        AutomationDeployResources automationWithGenFolder = AutomationDeployResources.builder()
+                                .parentPath(directoryGenned)
+                                .projectName(projectName)
+                                .azureResourceManager(azureResourceManager)
+                                .rgName(RetrieveConfig.config.get(projectName + "-rgName"))
+                                .deploymentName(RetrieveConfig.config.get(projectName + "-deploymentName"))
+                                .build();
+                        automationDeployResourcesList.add(automation);
+                        automationWithGenFolder.runCreateResources();
+                    }
 
                 });
 
