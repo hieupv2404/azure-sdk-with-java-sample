@@ -1,8 +1,0 @@
-{
-	"rg-name":"cpl-krc-vmss-rg",
-	"rg-region-name":"koreacentral",
-    "rg-region-label":"Korea Central",
-    "deployment-name":"cpl-krc-vmss-dp",
-    "scheduler-to-create":"0 37 16 * * *",
-    "scheduler-to-delete":"0 0 18 * * *"
-}

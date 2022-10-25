@@ -18,7 +18,7 @@ public class RetrieveConfig {
         return new File(rootPath).listFiles(File::isDirectory);
     }
 
-    public static void setPriority(){
+    public static void setPriority() {
         try {
             FileReader reader = new FileReader(ROOT_PATH_DEPLOY + "/priority.json");
             JSONParser parser = new JSONParser();
@@ -33,11 +33,11 @@ public class RetrieveConfig {
             Object obj = parser.parse(new FileReader(ROOT_PATH_DEPLOY + "/priority.json"));
             JSONObject jsonObject = (JSONObject) obj;
 
-            String[] priorityArray = new String[jsonObject.size()*2+1];
+            String[] priorityArray = new String[jsonObject.size() * 2 + 1];
             jsonObject.keySet().forEach(keyStr ->
             {
                 Object value = jsonObject.get(keyStr);
-                log.info("key: "+ keyStr + " - value: " + value);
+                log.info("key: " + keyStr + " - value: " + value);
                 priorityArray[Math.toIntExact((Long) value)] = (String) keyStr;
             });
 
@@ -49,6 +49,7 @@ public class RetrieveConfig {
         }
 
     }
+
     public static void retrieveConfig() {
         File[] directories = getAllProject(ROOT_PATH_DEPLOY);
         for (int i = 0; i < directories.length; i++) {
