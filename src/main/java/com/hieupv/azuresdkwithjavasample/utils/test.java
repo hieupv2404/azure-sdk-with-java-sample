@@ -1,13 +1,12 @@
 package com.hieupv.azuresdkwithjavasample.utils;
 
+import com.hieupv.azuresdkwithjavasample.AutomationDeleteResources;
 import com.hieupv.azuresdkwithjavasample.AzureSdkWithJavaSampleApplication;
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.IOException;
 
 public class test {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         //Creating a File object for directory
 //        String WORKING_PATH = "D:/Document/dmoa/cpl";
 //        Map<String, String> arm = new HashMap<>(0);
@@ -30,6 +29,11 @@ public class test {
 //        }
         RetrieveConfig.retrieveConfig();
         RetrieveConfig.setPriority();
-        AzureSdkWithJavaSampleApplication.subDirectoriesAfterSort(RetrieveConfig.getAllProject("D:/Document/dmoa/single/cmc"));
+//        AzureSdkWithJavaSampleApplication.subDirectoriesAfterSort(RetrieveConfig.getAllProject("D:/Document/dmoa/single/cmc"));
+        AutomationDeleteResources automationDeleteResources = AutomationDeleteResources.builder()
+                .configDeleteFilePath(RetrieveConfig.ROOT_PATH_DEPLOY + "/cmc")
+                .rgName(RetrieveConfig.config.get("cmc-rgName"))
+                .build();
+        automationDeleteResources.createScriptDeleteResource(AzureSdkWithJavaSampleApplication.subDirectoriesAfterSort(RetrieveConfig.getAllProject("D:/Document/dmoa/single/cmc")));
     }
 }

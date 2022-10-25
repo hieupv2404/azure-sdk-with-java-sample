@@ -1,50 +1,27 @@
 package com.hieupv.azuresdkwithjavasample;
 
-import com.azure.core.credential.TokenCredential;
-import com.azure.core.http.policy.HttpLogDetailLevel;
 import com.azure.core.http.rest.PagedIterable;
-import com.azure.core.management.AzureEnvironment;
 import com.azure.core.management.Region;
 import com.azure.core.management.exception.ManagementException;
-import com.azure.core.management.profile.AzureProfile;
-import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.resources.models.Deployment;
 import com.azure.resourcemanager.resources.models.DeploymentMode;
 import com.azure.resourcemanager.resources.models.DeploymentOperation;
 import com.azure.resourcemanager.resources.models.ResourceGroup;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.hieupv.azuresdkwithjavasample.utils.RetrieveConfig;
-import com.jayway.jsonpath.JsonPath;
 import lombok.Builder;
 import lombok.extern.log4j.Log4j2;
-import net.minidev.json.JSONArray;
-import net.minidev.json.JSONObject;
 import org.apache.commons.io.FileUtils;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
 
-import javax.websocket.DeploymentException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 @Log4j2
@@ -87,18 +64,18 @@ public class AutomationDeployResources {
             log.info("Creating a resource group with name: " + rgName);
             boolean isResourceGroupExist = false;
             for (ResourceGroup rGroup : azureResourceManager.resourceGroups().list()) {
-                if(rGroup.name().equals(rgName)){
+                if (rGroup.name().equals(rgName)) {
                     isResourceGroupExist = true;
                 }
             }
-            if(!isResourceGroupExist) {
+            if (!isResourceGroupExist) {
 
                 azureResourceManager.resourceGroups().define(rgName)
                         .withRegion(Region.create(RetrieveConfig.config.get(projectName + "-rgRegionName"), RetrieveConfig.config.get(projectName + "-rgRegionLabel")))
                         .create();
 
                 log.info("Created a resource group with name: " + rgName);
-            } else{
+            } else {
                 log.info(rgName + " is exists!");
 
             }
@@ -119,7 +96,7 @@ public class AutomationDeployResources {
                         .withParameters(parameterJson)
                         .withMode(DeploymentMode.INCREMENTAL)
                         .create();
-            } catch (ManagementException e){
+            } catch (ManagementException e) {
                 log.error("====>>> Exception create resource: " + e.getMessage(), e);
                 log.error("====>>> Failed to create resource: " + parentPath);
             }
@@ -189,8 +166,8 @@ public class AutomationDeployResources {
                         });
                     }
 
-                    String first = param.toString().replaceAll(",\\{\\}","");
-                    String second = first.replaceAll("\\[\\{\\},","[");
+                    String first = param.toString().replaceAll(",\\{\\}", "");
+                    String second = first.replaceAll("\\[\\{\\},", "[");
 
                     // Remove from clone file contents
                     final ObjectMapper mapperClone = new ObjectMapper();
@@ -211,8 +188,8 @@ public class AutomationDeployResources {
                         });
 
                     }
-                    String firstClone = paramClone.toString().replaceAll(",\\{\\}","");
-                    String secondClone = firstClone.replaceAll("\\[\\{\\},","[");
+                    String firstClone = paramClone.toString().replaceAll(",\\{\\}", "");
+                    String secondClone = firstClone.replaceAll("\\[\\{\\},", "[");
                     FileUtils.writeStringToFile(new File(destinationDirectory.getPath() + "/template.json"), secondClone, Charset.forName("UTF-8"));
 
                     return second;
@@ -281,7 +258,7 @@ public class AutomationDeployResources {
                     log.error("Error when modify directory " + sourceDirectory + " and " + destinationDirectory);
                     throw new RuntimeException(e);
                 }
-            } else if(directory.getName().matches("diskos(.*)")) {
+            } else if (directory.getName().matches("diskos(.*)")) {
                 try {
                     final ObjectMapper mapperDiskOS = new ObjectMapper();
                     final JsonNode resources = mapperDiskOS.readTree(new File(parentPath + "/template.json"));
@@ -294,15 +271,15 @@ public class AutomationDeployResources {
                     e.printStackTrace();
                     return "File not found";
                 }
-            } else if(directory.getName().matches("vm(.*)")){
+            } else if (directory.getName().matches("vm(.*)")) {
                 try {
                     final ObjectMapper mapperDiskOS = new ObjectMapper();
                     final JsonNode resources = mapperDiskOS.readTree(new File(parentPath + "/template.json"));
 
                     if (!resources.at("/resources").get(0).at("/properties/storageProfile").get("osDisk").isNull()) {
-                        ((ObjectNode) resources.at("/resources").get(0).at("/properties/storageProfile")).remove("osDisk");
+                        ((ObjectNode) resources.at("/resources").get(0).at("/properties/storageProfile/osDisk")).remove("managedDisk");
                     }
-                    if (resources.at("/resources").get(0).get("location").toString().equals("\"koreacentral\"") && !resources.at("/resources").get(0).at("/properties/osProfile").get("requireGuestProvisionSignal").isNull()){
+                    if (resources.at("/resources").get(0).get("location").toString().equals("\"koreacentral\"") && !resources.at("/resources").get(0).at("/properties/osProfile").get("requireGuestProvisionSignal").isNull()) {
                         ((ObjectNode) resources.at("/resources").get(0).at("/properties/osProfile")).remove("requireGuestProvisionSignal");
                     }
                     return resources.toString();
@@ -323,13 +300,14 @@ public class AutomationDeployResources {
     private String getParameter(String parentPath) throws IllegalAccessException, JsonProcessingException, IOException {
         try {
             final ObjectMapper mapper = new ObjectMapper();
-            final JsonNode param = mapper.readTree(new File(parentPath+"/parameters.json"));
+            final JsonNode param = mapper.readTree(new File(parentPath + "/parameters.json"));
             JsonNode paramNode = param.get("parameters");
 
-            Map<String, Object> mapKeyOfParameters = mapper.readValue(paramNode.toString(), new TypeReference<Map>() {});
+            Map<String, Object> mapKeyOfParameters = mapper.readValue(paramNode.toString(), new TypeReference<Map>() {
+            });
             mapKeyOfParameters.forEach((k, v) -> {
-                if(paramNode.at("/"+k+"/value").toString().equals("null")){
-                    ((ObjectNode)paramNode).remove(k);
+                if (paramNode.at("/" + k + "/value").toString().equals("null")) {
+                    ((ObjectNode) paramNode).remove(k);
                 }
             });
             return paramNode.toString();
@@ -340,7 +318,7 @@ public class AutomationDeployResources {
     }
 
     private void validateAndAddFieldValue(String type, String fieldValue, String fieldName, String errorMessage,
-                                                 JsonNode tmp) throws IllegalAccessException {
+                                          JsonNode tmp) throws IllegalAccessException {
         final ObjectMapper mapper = new ObjectMapper();
         final ObjectNode parameter = mapper.createObjectNode();
         parameter.put("type", type);
