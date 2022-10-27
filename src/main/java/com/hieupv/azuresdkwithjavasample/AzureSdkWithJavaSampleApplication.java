@@ -98,24 +98,24 @@ public class AzureSdkWithJavaSampleApplication {
 //            });
 
             // Test Deleted
-//            subDirectoriesAfterSortReversed = new ArrayList<>(subDirectoriesAfterSort(subDirectories));
-//            Collections.reverse(subDirectoriesAfterSortReversed);
-//            log.info("====================================");
-//            log.info("====>>> Start delete resource");
-//            AutomationDeleteResources automationDeleteResources = AutomationDeleteResources.builder()
-//                    .configDeleteFilePath(RetrieveConfig.ROOT_PATH_DEPLOY + "/"+projectName+"/script/")
-//                    .rgName(RetrieveConfig.config.get(projectName+"-rgName"))
-//                    .build();
-//            automationDeleteResourcesList.add(automationDeleteResources);
-//            // Create file script auto delete resource
-//            automationDeleteResources.deleteResource(subDirectoriesAfterSortReversed);
-//            // Detele Resource with script
-//            File[] folderScript = RetrieveConfig.getAllProject(RetrieveConfig.ROOT_PATH_DEPLOY + "/"+projectName+"/script/");
-//
-//            for(File file : folderScript){
-//                automationDeleteResources.runScriptDeleteResource(file.getPath());
-//            }
-//            log.info("====>>> End delete resource path");
+            subDirectoriesAfterSortReversed = new ArrayList<>(subDirectoriesAfterSort(subDirectories));
+            Collections.reverse(subDirectoriesAfterSortReversed);
+            log.info("====================================");
+            log.info("====>>> Start delete resource");
+            AutomationDeleteResources automationDeleteResources = AutomationDeleteResources.builder()
+                    .configDeleteFilePath(RetrieveConfig.ROOT_PATH_DEPLOY + "/"+projectName+"/script/")
+                    .rgName(RetrieveConfig.config.get(projectName+"-rgName"))
+                    .build();
+            automationDeleteResourcesList.add(automationDeleteResources);
+            // Create file script auto delete resource
+            automationDeleteResources.createScriptDeleteResource(subDirectoriesAfterSortReversed);
+            // Detele Resource with script
+            File[] folderScript = RetrieveConfig.getAllProject(RetrieveConfig.ROOT_PATH_DEPLOY + "/"+projectName+"/script/");
+
+            for(File file : folderScript){
+                automationDeleteResources.runScriptDeleteResource(file.getPath());
+            }
+            log.info("====>>> End delete resource path");
 
 
             // Create with schedule
@@ -178,34 +178,34 @@ public class AzureSdkWithJavaSampleApplication {
             schedulerList.add(create);
 
             // Schedule the delete resources
-            Scheduler delete = new Scheduler();
-            delete.schedule(RetrieveConfig.config.get(projectName + "-schedulerToDelete"), () -> {
-                subDirectoriesAfterSortReversed = new ArrayList<>(subDirectoriesAfterSort(subDirectories));
-                Collections.reverse(subDirectoriesAfterSortReversed);
-                log.info("====================================");
-                log.info("====>>> Start delete resource");
-                AutomationDeleteResources automationDeleteResources = AutomationDeleteResources.builder()
-                        .configDeleteFilePath(RetrieveConfig.ROOT_PATH_DEPLOY + "/" + projectName + "/script/")
-                        .rgName(RetrieveConfig.config.get(projectName + "-rgName"))
-                        .build();
-                automationDeleteResourcesList.add(automationDeleteResources);
-                // Create file script auto delete resource
-                try {
-                    automationDeleteResources.createScriptDeleteResource(subDirectoriesAfterSortReversed);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                // Detele Resource with script
-                File[] folderScript = RetrieveConfig.getAllProject(RetrieveConfig.ROOT_PATH_DEPLOY + "/" + projectName + "/script/");
-
-                for (File file : folderScript) {
-                    automationDeleteResources.runScriptDeleteResource(file.getPath());
-                }
-                log.info("====>>> End delete resource path");
-            });
-            // Starts the scheduler to delete resources.
-            delete.start();
-            schedulerList.add(delete);
+//            Scheduler delete = new Scheduler();
+//            delete.schedule(RetrieveConfig.config.get(projectName + "-schedulerToDelete"), () -> {
+//                subDirectoriesAfterSortReversed = new ArrayList<>(subDirectoriesAfterSort(subDirectories));
+//                Collections.reverse(subDirectoriesAfterSortReversed);
+//                log.info("====================================");
+//                log.info("====>>> Start delete resource");
+//                AutomationDeleteResources automationDeleteResources = AutomationDeleteResources.builder()
+//                        .configDeleteFilePath(RetrieveConfig.ROOT_PATH_DEPLOY + "/" + projectName + "/script/")
+//                        .rgName(RetrieveConfig.config.get(projectName + "-rgName"))
+//                        .build();
+//                automationDeleteResourcesList.add(automationDeleteResources);
+//                // Create file script auto delete resource
+//                try {
+//                    automationDeleteResources.createScriptDeleteResource(subDirectoriesAfterSortReversed);
+//                } catch (IOException e) {
+//                    throw new RuntimeException(e);
+//                }
+//                // Detele Resource with script
+//                File[] folderScript = RetrieveConfig.getAllProject(RetrieveConfig.ROOT_PATH_DEPLOY + "/" + projectName + "/script/");
+//
+//                for (File file : folderScript) {
+//                    automationDeleteResources.runScriptDeleteResource(file.getPath());
+//                }
+//                log.info("====>>> End delete resource path");
+//            });
+//            // Starts the scheduler to delete resources.
+//            delete.start();
+//            schedulerList.add(delete);
         }
 
     }
