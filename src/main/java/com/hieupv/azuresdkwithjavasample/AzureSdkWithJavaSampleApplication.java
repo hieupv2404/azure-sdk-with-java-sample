@@ -20,8 +20,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 
 
 @SpringBootApplication
@@ -34,9 +32,29 @@ public class AzureSdkWithJavaSampleApplication {
 
     static List<String> subDirectoriesAfterSortReversed = new ArrayList<>();
     static List<Scheduler> schedulerList = new ArrayList<>();
+    static String tenantId = null;
+    static String subscriptionId = null;
 
-    public static void main(String[] args) throws IOException, ExecutionException, InterruptedException, TimeoutException {
+    public static void main(String[] args) throws IOException {
         SpringApplication.run(AzureSdkWithJavaSampleApplication.class, args);
+
+        // Load env variable
+        RetrieveConfig.ROOT_PATH_DEPLOY = System.getenv("ROOT_PATH_DEPLOY");
+        tenantId = System.getenv("TENANT_ID");
+        subscriptionId = System.getenv("SUBSCRIPTION_ID");
+        // End load env variable
+
+        AzureProfile profile = new AzureProfile(tenantId, subscriptionId, AzureEnvironment.AZURE);
+        TokenCredential credential = new DefaultAzureCredentialBuilder()
+                .authorityHost(profile.getEnvironment().getActiveDirectoryEndpoint())
+                .build();
+
+        AzureResourceManager azureResourceManager = AzureResourceManager
+                .configure()
+                .withLogLevel(HttpLogDetailLevel.BASIC)
+                .authenticate(credential, profile)
+                .withDefaultSubscription();
+
         RetrieveConfig.retrieveConfig();
         RetrieveConfig.setPriority();
         File[] directories = RetrieveConfig.getAllProject(RetrieveConfig.ROOT_PATH_DEPLOY);
@@ -44,80 +62,6 @@ public class AzureSdkWithJavaSampleApplication {
         for (int i = 0; i < directories.length; i++) {
             String projectName = directories[i].getName();
             File[] subDirectories = RetrieveConfig.getAllProject(directories[i].getPath());
-
-            // Test create
-//            subDirectoriesAfterSort(subDirectories).forEach(directory -> {
-//                log.info("====================================");
-//                log.info("====>>> Start deploy resource path " + directory);
-//                if(directory.matches("(.*)diskos(.*)")){
-//                    log.info("Ignoring Deploy Disk OS");
-//                    return;
-//                }
-//                AutomationDeployResources automation = AutomationDeployResources.builder()
-//                        .parentPath(directory)
-//                        .projectName(projectName)
-//                        .azureResourceManager(azureResourceManager)
-//                        .rgName(RetrieveConfig.config.get(projectName + "-rgName"))
-//                        .deploymentName(RetrieveConfig.config.get(projectName + "-deploymentName"))
-//                        .build();
-//                automationDeployResourcesList.add(automation);
-//                automation.runCreateResources();
-//                log.info("====>>> End deploy resource path " + directory);
-//
-//                File autoGenFile = new File(directory);
-//                String parentPath = null;
-//                if(autoGenFile.getName().matches("nsg(.*)")){
-//                    parentPath = autoGenFile.getParent();
-//                    String directoryGenned = parentPath+"/sgr-"+ autoGenFile.getName();
-//                    log.info("====================================");
-//                    log.info("====>>> Start deploy resource path " + directoryGenned);
-//                    AutomationDeployResources automationWithGenFolder = AutomationDeployResources.builder()
-//                            .parentPath(directoryGenned)
-//                            .projectName(projectName)
-//                            .azureResourceManager(azureResourceManager)
-//                            .rgName(RetrieveConfig.config.get(projectName + "-rgName"))
-//                            .deploymentName(RetrieveConfig.config.get(projectName + "-deploymentName"))
-//                            .build();
-//                    automationDeployResourcesList.add(automation);
-//                    automationWithGenFolder.runCreateResources();
-//                } else if(autoGenFile.getName().matches("vnet(.*)")){
-//                    parentPath = autoGenFile.getParent();
-//                    String directoryGenned = parentPath+"/snet-"+ autoGenFile.getName();
-//                    log.info("====================================");
-//                    log.info("====>>> Start deploy resource path " + directoryGenned);
-//                    AutomationDeployResources automationWithGenFolder = AutomationDeployResources.builder()
-//                            .parentPath(directoryGenned)
-//                            .projectName(projectName)
-//                            .azureResourceManager(azureResourceManager)
-//                            .rgName(RetrieveConfig.config.get(projectName + "-rgName"))
-//                            .deploymentName(RetrieveConfig.config.get(projectName + "-deploymentName"))
-//                            .build();
-//                    automationDeployResourcesList.add(automation);
-//                    automationWithGenFolder.runCreateResources();
-//                }
-//            });
-
-            // Test Deleted
-//            subDirectoriesAfterSortReversed = new ArrayList<>(subDirectoriesAfterSort(subDirectories));
-//            Collections.reverse(subDirectoriesAfterSortReversed);
-//            log.info("====================================");
-//            log.info("====>>> Start delete resource");
-//            AutomationDeleteResources automationDeleteResources = AutomationDeleteResources.builder()
-//                    .configDeleteFilePath(RetrieveConfig.ROOT_PATH_DEPLOY + "/"+projectName+"/script/")
-//                    .rgName(RetrieveConfig.config.get(projectName+"-rgName"))
-//                    .build();
-//            automationDeleteResourcesList.add(automationDeleteResources);
-//            // Create file script auto delete resource
-//            automationDeleteResources.deleteResource(subDirectoriesAfterSortReversed);
-//            // Detele Resource with script
-//            File[] folderScript = RetrieveConfig.getAllProject(RetrieveConfig.ROOT_PATH_DEPLOY + "/"+projectName+"/script/");
-//
-//            for(File file : folderScript){
-//                automationDeleteResources.runScriptDeleteResource(file.getPath());
-//            }
-//            log.info("====>>> End delete resource path");
-
-
             // Create with schedule
             Scheduler create = new Scheduler();
             create.schedule(RetrieveConfig.config.get(projectName + "-schedulerToCreate"), () -> {
@@ -175,6 +119,7 @@ public class AzureSdkWithJavaSampleApplication {
 
             });
             create.start();
+            log.info("====>>> Run scheduling create resources for " + projectName + " ....");
             schedulerList.add(create);
 
             // Schedule the delete resources
@@ -205,6 +150,7 @@ public class AzureSdkWithJavaSampleApplication {
             });
             // Starts the scheduler to delete resources.
             delete.start();
+            log.info("====>>> Run scheduling delete resources for " + projectName + " ....");
             schedulerList.add(delete);
         }
 
@@ -242,17 +188,6 @@ public class AzureSdkWithJavaSampleApplication {
         return finalSubDirectories;
 
     }
-
-    static AzureProfile profile = new AzureProfile("16f290ef-2fe2-43b8-b8b5-2b74d9257f50", "0e57272d-f2d7-4c7b-ad01-4632eee6454f", AzureEnvironment.AZURE);
-    static TokenCredential credential = new DefaultAzureCredentialBuilder()
-            .authorityHost(profile.getEnvironment().getActiveDirectoryEndpoint())
-            .build();
-
-    static AzureResourceManager azureResourceManager = AzureResourceManager
-            .configure()
-            .withLogLevel(HttpLogDetailLevel.BASIC)
-            .authenticate(credential, profile)
-            .withDefaultSubscription();
 }
 
 

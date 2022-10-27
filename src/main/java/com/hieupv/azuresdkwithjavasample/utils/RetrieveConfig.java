@@ -12,7 +12,7 @@ import java.util.*;
 public class RetrieveConfig {
     public static Map<String, String> config = new HashMap<>();
     public static List<String> priorityList = new ArrayList<>();
-    public static final String ROOT_PATH_DEPLOY = System.getenv("root-path-deploy");
+    public static String ROOT_PATH_DEPLOY = null;
 
     public static File[] getAllProject(String rootPath) {
         return new File(rootPath).listFiles(File::isDirectory);
